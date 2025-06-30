@@ -1,0 +1,15 @@
+services:
+  linux-desktop:
+    build: .
+    container_name: linux-desktop
+    privileged: true
+    ports:
+      - "6080:6080"  # browser access
+      - "5901:5901"  # optional VNC client
+    volumes:
+      - ./shared:/home/docker/shared  # mount host folder
+      - /tmp/.X11-unix:/tmp/.X11-unix  # clipboard/audio support
+    environment:
+      - PULSE_SERVER=unix:/tmp/pulse-native
+      - DISPLAY=:0
+    restart: unless-stopped
