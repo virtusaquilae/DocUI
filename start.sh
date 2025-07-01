@@ -1,11 +1,16 @@
 #!/bin/bash
 
+echo "Starting desktop environment..."
+
 # Start system D-Bus daemon
 sudo mkdir -p /var/run/dbus
 sudo dbus-daemon --system --fork --print-pid --print-address
 
 # Start session D-Bus for current user
 eval $(dbus-launch --sh-syntax)
+
+# Start NetworkManager for PPPoE support
+sudo systemctl start NetworkManager 2>/dev/null || echo "NetworkManager failed to start or already running"
 
 # PulseAudio setup with better error handling
 pulseaudio --start --exit-idle-time=-1 --daemon 2>/dev/null || echo "PulseAudio already running or failed to start"
@@ -47,8 +52,8 @@ echo "===== END ~/.vnc/xstartup contents ====="
 echo "Current user: $(whoami)"
 echo "Home directory: $HOME"
 
-# Set up VNC password (using a simple password for development)
-echo -e "password\npassword\nn" | vncpasswd
+# Set up VNC password (using the user's specified password)
+echo -e "virtusaquilae\nvirtusaquilae\nn" | vncpasswd
 
 vncserver -list
 
