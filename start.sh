@@ -12,8 +12,20 @@ eval $(dbus-launch --sh-syntax)
 # Start NetworkManager for PPPoE support
 sudo systemctl start NetworkManager 2>/dev/null || echo "NetworkManager failed to start or already running"
 
-# PulseAudio setup with better error handling
-pulseaudio --start --exit-idle-time=-1 --daemon 2>/dev/null || echo "PulseAudio already running or failed to start"
+# Configure PulseAudio for container environment
+export PULSE_RUNTIME_PATH=/tmp/pulse
+mkdir -p $PULSE_RUNTIME_PATH
+pulseaudio --kill 2>/dev/null || true
+sleep 1
+
+# Start PulseAudio with container-friendly settings
+pulseaudio --start \
+    --exit-idle-time=-1 \
+    --daemon \
+    --disallow-exit \
+    --disable-shm \
+    --log-target=stderr \
+    --log-level=warn 2>/dev/null || echo "PulseAudio failed to start"
 
 # Fix X11 socket permissions for VNC
 sudo mkdir -p /tmp/.X11-unix
@@ -37,11 +49,18 @@ export XKL_XMODMAP_DISABLE=1
 export XDG_CURRENT_DESKTOP="XFCE"
 export XDG_SESSION_DESKTOP="XFCE"
 
-# Start D-Bus
+# Container-specific environment
+export NO_AT_BRIDGE=1
+export PULSE_RUNTIME_PATH=/tmp/pulse
+
+# Start D-Bus session
 eval `dbus-launch --sh-syntax`
 
-# Start XFCE4
-exec startxfce4
+# Disable problematic XFCE components for containers
+export XFCE4_DISABLE_XFWM4_COMPOSITOR=1
+
+# Start XFCE4 with reduced logging
+exec startxfce4 2>/dev/null
 EOF
 chmod +x ~/.vnc/xstartup
 echo "===== ~/.vnc/xstartup contents ====="

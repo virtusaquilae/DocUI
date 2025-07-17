@@ -10,14 +10,15 @@ services:
       - NET_RAW
     security_opt:
       - apparmor:unconfined
-    ports:
-      - "6080:6080"  # browser access
-      - "5901:5901"  # optional VNC client
+    # Note: ports are not needed with network_mode: host
+    # The services will be available directly on host ports 6080 and 5901
     volumes:
       - ./shared:/home/eagle/shared  # mount host folder
       - /tmp/.X11-unix:/tmp/.X11-unix  # clipboard/audio support
       - /dev:/dev  # access to network devices
     environment:
-      - PULSE_SERVER=unix:/tmp/pulse-native
       - DISPLAY=:0
+      - NO_AT_BRIDGE=1
+      - PULSE_DISABLE_AUTOSPAWN=1
+      - XDG_RUNTIME_DIR=/tmp
     restart: unless-stopped

@@ -8,7 +8,7 @@ ENV container=docker
 # Install systemd and enable it
 RUN apt-get update && apt-get install -y systemd systemd-sysv
 
-# Install basic tools + XFCE + VNC + noVNC + PPPoE support
+# Install basic tools + XFCE + VNC + noVNC
 RUN apt-get update && apt-get install -y \
     xfce4 xfce4-goodies tightvncserver \
     novnc websockify tigervnc-standalone-server\
@@ -19,12 +19,7 @@ RUN apt-get update && apt-get install -y \
     at-spi2-core \
     net-tools iputils-ping dnsutils \
     ca-certificates software-properties-common \
-    gnupg lsb-release \
-    pppoe pppoeconf ppp \
-    network-manager network-manager-gnome \
-    network-manager-pptp-gnome \
-    iptables iproute2 \
-    resolvconf && \
+    gnupg lsb-release && \
     apt-get clean
 
 # Configure systemd for container use
@@ -44,17 +39,6 @@ RUN systemctl set-default multi-user.target && \
         systemd-random-seed.service \
         systemd-machine-id-commit.service && \
     systemctl disable systemd-resolved
-
-# Enable NetworkManager for PPPoE support
-RUN systemctl enable NetworkManager && \
-    systemctl disable networking
-
-# Configure PPP options
-RUN echo 'noauth' >> /etc/ppp/options && \
-    echo 'defaultroute' >> /etc/ppp/options && \
-    echo 'usepeerdns' >> /etc/ppp/options && \
-    echo 'persist' >> /etc/ppp/options && \
-    echo 'maxfail 0' >> /etc/ppp/options
 
 # Install Firefox from Mozilla's official repository (since snap doesn't work in containers)
 # First remove the snap transitional package
@@ -78,21 +62,7 @@ RUN useradd -m -s /bin/bash eagle && echo "eagle:virtusaquilae" | chpasswd && ad
 USER eagle
 WORKDIR /home/eagle
 COPY --chown=eagle:eagle start.sh /home/eagle/start.sh
-COPY --chown=eagle:eagle setup_pppoe.sh /home/eagle/setup_pppoe.sh
-RUN chmod +x /home/eagle/start.sh && chmod +x /home/eagle/setup_pppoe.sh
-
-# Create desktop shortcut for PPPoE setup
-RUN mkdir -p /home/eagle/Desktop && \
-    echo '[Desktop Entry]' > /home/eagle/Desktop/PPPoE-Setup.desktop && \
-    echo 'Version=1.0' >> /home/eagle/Desktop/PPPoE-Setup.desktop && \
-    echo 'Type=Application' >> /home/eagle/Desktop/PPPoE-Setup.desktop && \
-    echo 'Name=PPPoE Setup' >> /home/eagle/Desktop/PPPoE-Setup.desktop && \
-    echo 'Comment=Configure PPPoE Internet Connection' >> /home/eagle/Desktop/PPPoE-Setup.desktop && \
-    echo 'Exec=xfce4-terminal -e "/home/eagle/setup_pppoe.sh"' >> /home/eagle/Desktop/PPPoE-Setup.desktop && \
-    echo 'Icon=network-wired' >> /home/eagle/Desktop/PPPoE-Setup.desktop && \
-    echo 'Terminal=false' >> /home/eagle/Desktop/PPPoE-Setup.desktop && \
-    echo 'Categories=Network;' >> /home/eagle/Desktop/PPPoE-Setup.desktop && \
-    chmod +x /home/eagle/Desktop/PPPoE-Setup.desktop
+RUN chmod +x /home/eagle/start.sh
 
 # Create a systemd service for our desktop environment
 USER root
