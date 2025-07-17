@@ -40,17 +40,53 @@ RUN systemctl set-default multi-user.target && \
         systemd-machine-id-commit.service && \
     systemctl disable systemd-resolved
 
-# Install Firefox from Mozilla's official repository (since snap doesn't work in containers)
-# First remove the snap transitional package
-RUN apt-get remove -y firefox && \
-    wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O- | gpg --dearmor -o /usr/share/keyrings/packages.mozilla.org.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/packages.mozilla.org.gpg] https://packages.mozilla.org/apt mozilla main" | tee -a /etc/apt/sources.list.d/mozilla.list > /dev/null && \
-    echo 'Package: *' > /etc/apt/preferences.d/mozilla && \
-    echo 'Pin: origin packages.mozilla.org' >> /etc/apt/preferences.d/mozilla && \
-    echo 'Pin-Priority: 1000' >> /etc/apt/preferences.d/mozilla && \
-    apt-get update && \
-    apt-get install -y firefox && \
+# Install Firefox and Google Chrome
+RUN apt-get update && apt-get install -y firefox && \
     apt-get clean
+
+# Install Google Chrome using curl with better error handling
+RUN curl -fsSL -o /tmp/google-chrome-stable_current_amd64.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt-get update && \
+    apt-get install -y /tmp/google-chrome-stable_current_amd64.deb || apt-get install -f -y && \
+    rm -f /tmp/google-chrome-stable_current_amd64.deb && \
+    apt-get clean
+
+# Install additional dependencies for Chrome
+RUN apt-get update && apt-get install -y \
+    fonts-liberation \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils && \
+    apt-get clean
+
+# Create Chrome wrapper script for container environment
+RUN echo '#!/bin/bash' > /usr/local/bin/chrome && \
+    echo 'exec /usr/bin/google-chrome-stable --no-sandbox --disable-dev-shm-usage --disable-gpu --remote-debugging-port=9222 "$@"' >> /usr/local/bin/chrome && \
+    chmod +x /usr/local/bin/chrome
+
+# Create desktop entry for Chrome
+RUN mkdir -p /usr/share/applications && \
+    echo '[Desktop Entry]' > /usr/share/applications/google-chrome.desktop && \
+    echo 'Version=1.0' >> /usr/share/applications/google-chrome.desktop && \
+    echo 'Name=Google Chrome' >> /usr/share/applications/google-chrome.desktop && \
+    echo 'Comment=Access the Internet' >> /usr/share/applications/google-chrome.desktop && \
+    echo 'GenericName=Web Browser' >> /usr/share/applications/google-chrome.desktop && \
+    echo 'Keywords=Internet;WWW;Browser;Web;Explorer' >> /usr/share/applications/google-chrome.desktop && \
+    echo 'Exec=/usr/local/bin/chrome %U' >> /usr/share/applications/google-chrome.desktop && \
+    echo 'Terminal=false' >> /usr/share/applications/google-chrome.desktop && \
+    echo 'Icon=google-chrome' >> /usr/share/applications/google-chrome.desktop && \
+    echo 'Type=Application' >> /usr/share/applications/google-chrome.desktop && \
+    echo 'Categories=Network;WebBrowser;' >> /usr/share/applications/google-chrome.desktop && \
+    echo 'MimeType=text/html;text/xml;application/xhtml+xml;' >> /usr/share/applications/google-chrome.desktop && \
+    chmod +x /usr/share/applications/google-chrome.desktop
 
 # Create non-root user with passwordless sudo
 RUN useradd -m -s /bin/bash eagle && echo "eagle:virtusaquilae" | chpasswd && adduser eagle sudo && \

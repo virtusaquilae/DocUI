@@ -3,15 +3,18 @@ services:
     build: .
     container_name: linux-desktop
     privileged: true
-    network_mode: host
+    # Changed from network_mode: host to explicit port mapping for Windows compatibility
+    ports:
+      - "6080:6080"  # noVNC web interface
+      - "5901:5901"  # VNC port
     cap_add:
       - SYS_ADMIN
       - NET_ADMIN
       - NET_RAW
     security_opt:
       - apparmor:unconfined
-    # Note: ports are not needed with network_mode: host
-    # The services will be available directly on host ports 6080 and 5901
+    # Add shared memory size for Chrome
+    shm_size: 2gb
     volumes:
       - ./shared:/home/eagle/shared  # mount host folder
       - /tmp/.X11-unix:/tmp/.X11-unix  # clipboard/audio support
