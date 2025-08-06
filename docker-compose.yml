@@ -17,6 +17,7 @@ services:
     shm_size: 2gb
     volumes:
       - ./shared:/home/eagle/shared  # mount host folder
+      - ./new_cache:/home/eagle/.config/google-chrome  # mount cache folder
       - /tmp/.X11-unix:/tmp/.X11-unix  # clipboard/audio support
       - /dev:/dev  # access to network devices
     environment:

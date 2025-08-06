@@ -14,7 +14,11 @@ RUN apt-get update && apt-get install -y \
     novnc websockify tigervnc-standalone-server\
     wget curl supervisor sudo xterm dbus-x11 \
     pulseaudio pulseaudio-utils \
-    xfce4-session xfce4-settings \
+    xfce4-session xfce4-settings xfconf \
+    xfce4-panel xfce4-whiskermenu-plugin \
+    thunar xfwm4 xfdesktop4 \
+    openbox openbox-menu \
+    lxde-core lxpanel pcmanfm \
     policykit-1-gnome \
     at-spi2-core \
     net-tools iputils-ping dnsutils \
@@ -28,7 +32,6 @@ RUN systemctl set-default multi-user.target && \
         dev-hugepages.mount \
         sys-fs-fuse-connections.mount \
         sys-kernel-config.mount \
-        display-manager.service \
         getty@.service \
         systemd-logind.service \
         systemd-remount-fs.service \
@@ -38,7 +41,8 @@ RUN systemctl set-default multi-user.target && \
         systemd-udevd.service \
         systemd-random-seed.service \
         systemd-machine-id-commit.service && \
-    systemctl disable systemd-resolved
+    systemctl disable systemd-resolved && \
+    rm -f /etc/systemd/system/display-manager.service
 
 # Install Firefox and Google Chrome
 RUN apt-get update && apt-get install -y firefox && \
@@ -97,6 +101,13 @@ RUN useradd -m -s /bin/bash eagle && echo "eagle:virtusaquilae" | chpasswd && ad
 # Set up environment
 USER eagle
 WORKDIR /home/eagle
+
+# Create proper XDG directory structure for XFCE
+RUN mkdir -p ~/.config/xfce4/{xfconf/xfce-perchannel-xml,sessions,panel,desktop} && \
+    mkdir -p ~/.local/share/xfce4 && \
+    mkdir -p ~/.cache/xfce4 && \
+    chmod -R 755 ~/.config ~/.local ~/.cache
+
 COPY --chown=eagle:eagle start.sh /home/eagle/start.sh
 RUN chmod +x /home/eagle/start.sh
 

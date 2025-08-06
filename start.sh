@@ -46,21 +46,53 @@ cat > ~/.vnc/xstartup << 'EOF'
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
 export XKL_XMODMAP_DISABLE=1
-export XDG_CURRENT_DESKTOP="XFCE"
-export XDG_SESSION_DESKTOP="XFCE"
 
-# Container-specific environment
+# Simple environment setup
 export NO_AT_BRIDGE=1
-export PULSE_RUNTIME_PATH=/tmp/pulse
+export XDG_RUNTIME_DIR=/tmp
+export DISPLAY=:1
 
 # Start D-Bus session
 eval `dbus-launch --sh-syntax`
 
-# Disable problematic XFCE components for containers
-export XFCE4_DISABLE_XFWM4_COMPOSITOR=1
+# Start a basic lightweight desktop environment
+echo "Starting lightweight desktop environment..."
 
-# Start XFCE4 with reduced logging
-exec startxfce4 2>/dev/null
+# Try LXDE first (most reliable in containers)
+if command -v startlxde >/dev/null 2>&1; then
+    echo "Starting LXDE desktop..."
+    exec startlxde
+elif command -v openbox >/dev/null 2>&1; then
+    echo "Starting Openbox with manual components..."
+    # Start openbox window manager
+    openbox &
+    sleep 2
+    
+    # Start panel if available
+    if command -v lxpanel >/dev/null 2>&1; then
+        lxpanel &
+    elif command -v xfce4-panel >/dev/null 2>&1; then
+        xfce4-panel &
+    fi
+    
+    # Start file manager desktop
+    if command -v pcmanfm >/dev/null 2>&1; then
+        pcmanfm --desktop &
+    elif command -v xfdesktop >/dev/null 2>&1; then
+        xfdesktop &
+    fi
+    
+    # Start a terminal for user access
+    xterm &
+    
+    # Keep session alive
+    wait
+else
+    echo "No suitable desktop environment found, starting minimal setup..."
+    # Minimal fallback
+    xterm &
+    wait
+fi
 EOF
 chmod +x ~/.vnc/xstartup
 echo "===== ~/.vnc/xstartup contents ====="
